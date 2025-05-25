@@ -6,6 +6,7 @@ import re
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import nltk
+import pandas as pd
 
 # Configuración inicial
 st.set_page_config(page_title="Análisis de Opiniones", layout="wide")
@@ -100,11 +101,16 @@ def main():
     
     # Análisis de sentimientos
     st.subheader("Análisis de Sentimientos")
-    df['Sentimiento'] = df['Opinión'].apply(lambda x: analyze_sentiment(x)[0])
-    df['Puntaje'] = df['Opinión'].apply(lambda x: analyze_sentiment(x)[1])
+    df['Sentimiento'] = df['Opción'].apply(lambda x: analyze_sentiment(x)[0])
+    df['Puntaje'] = df['Opción'].apply(lambda x: analyze_sentiment(x)[1])
     
     # Mostrar resultados
-    st.dataframe(df[['Opinión', 'Sentimiento', 'Puntaje']].sort_values('Puntaje', ascending=False))
+    st.dataframe(df[['Opción', 'Sentimiento', 'Puntaje']].sort_values('Puntaje', ascending=False))
     
     # Distribución de sentimientos
-    st.write("**Distribución
+    st.write("**Distribución de sentimientos**")
+    sentiment_counts = df['Sentimiento'].value_counts()
+    st.bar_chart(sentiment_counts)
+
+if __name__ == "__main__":
+    main()
