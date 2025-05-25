@@ -1,9 +1,8 @@
 services:
   - type: web
-    name: analisis-sentimientos
-    env: python
+    name: analisis-texto-ligero
     plan: free
-    region: ohio  # Más estable que oregon
+    region: ohio
     buildCommand: |
       pip install -r requirements.txt
       python -m nltk.downloader punkt stopwords -d ./nltk_data
@@ -13,7 +12,4 @@ services:
         value: 1
       - key: NLTK_DATA
         value: ./nltk_data
-      - key: TRANSFORMERS_OFFLINE
-        value: 0
-    healthCheckPath: /healthz
-    autoDeploy: true
+    healthCheckPath: /health
