@@ -101,11 +101,11 @@ def main():
     
     # Análisis de sentimientos
     st.subheader("Análisis de Sentimientos")
-    df['Sentimiento'] = df['Opción'].apply(lambda x: analyze_sentiment(x)[0])
-    df['Puntaje'] = df['Opción'].apply(lambda x: analyze_sentiment(x)[1])
+    df['Sentimiento'] = df['Opinión'].apply(lambda x: analyze_sentiment(x)[0])
+    df['Puntaje'] = df['Opinión'].apply(lambda x: analyze_sentiment(x)[1])
     
     # Mostrar resultados
-    st.dataframe(df[['Opción', 'Sentimiento', 'Puntaje']].sort_values('Puntaje', ascending=False))
+    st.dataframe(df[['Opinión', 'Sentimiento', 'Puntaje']].sort_values('Puntaje', ascending=False))
     
     # Distribución de sentimientos
     st.write("**Distribución de sentimientos**")
