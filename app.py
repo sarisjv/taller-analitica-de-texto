@@ -1,92 +1,73 @@
 import os
-os.environ["STREAMLIT_SERVER_PORT"] = os.getenv("PORT", "8501")
-os.environ["STREAMLIT_SERVER_ADDRESS"] = "0.0.0.0"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+os.environ["STREAMLIT_SERVER_PORT"] = os.getenv("PORT", "8501")
+os.environ["STREAMLIT_SERVER_ADDRESS"] = "0.0.0.0"
 
 import streamlit as st
-from streamlit.runtime.scriptrunner import add_script_run_ctx
-add_script_run_ctx()
-
 import pandas as pd
-from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 from collections import Counter
 import re
+import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-import nltk
-from transformers import pipeline, AutoModelForSequenceClassification, AutoTokenizer
-import torch
+import gc  # Garbage collector
 
-# Configuración inicial
-st.set_page_config(
-    page_title="Análisis de Opiniones",
-    layout="wide",
-    menu_items={
-        'Get Help': 'https://github.com/tu-usuario/tu-repo',
-        'About': "App de análisis de sentimientos optimizada para Render"
-    }
-)
-
-# Descarga de recursos NLTK
+# Configuración mínima
 nltk.download('punkt', quiet=True)
 nltk.download('stopwords', quiet=True)
 
-# Modelos optimizados (cache limitado)
-@st.cache_resource(max_entries=2, show_spinner=False)
-def load_models():
-    try:
-        model = AutoModelForSequenceClassification.from_pretrained(
-            "distilbert-base-uncased",  # Modelo ligero
-            device_map="auto",
-            torch_dtype=torch.float16
-        )
-        tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
-        return pipeline(
-            "sentiment-analysis",
-            model=model,
-            tokenizer=tokenizer,
-            device=0 if torch.cuda.is_available() else -1
-        )
-    except Exception as e:
-        st.error(f"Error cargando modelo: {str(e)}")
-        return None
+# Análisis de sentimientos sin transformers (alternativa liviana)
+def simple_sentiment_analysis(text):
+    positive_words = ['bueno', 'excelente', 'maravilloso', 'recomiendo', 'perfecto']
+    negative_words = ['malo', 'terrible', 'horrible', 'pésimo', 'decepcionante']
+    
+    text = text.lower()
+    pos = sum(1 for word in positive_words if word in text)
+    neg = sum(1 for word in negative_words if word in text)
+    
+    if pos > neg:
+        return "Positivo", pos/(pos+neg+1)
+    elif neg > pos:
+        return "Negativo", neg/(pos+neg+1)
+    else:
+        return "Neutral", 0.5
 
-# Interfaz de usuario optimizada
 def main():
-    st.title("📊 Análisis de Opiniones Optimizado")
+    st.title("📊 Análisis Ligero de Opiniones")
     
-    analyzer = load_models()
-    
-    if analyzer is None:
-        st.warning("El servicio está iniciando. Por favor espera 1 minuto y recarga.")
-        return
-
-    uploaded_file = st.file_uploader("Sube tu CSV con opiniones", type="csv")
+    uploaded_file = st.file_uploader("Sube tu archivo CSV", type="csv")
     
     if uploaded_file:
-        df = pd.read_csv(uploaded_file).head(20)  # Limitar a 20 registros
-        
-        with st.spinner("Analizando (esto tomará 30 segundos)..."):
-            # Procesamiento ligero
-            st.subheader("Resultados Básicos")
-            col1, col2 = st.columns(2)
+        try:
+            df = pd.read_csv(uploaded_file).head(15)  # Limitar a 15 registros
             
-            with col1:
-                tokens = word_tokenize(' '.join(df.iloc[:, 0].astype(str)).lower())
-                filtered = [w for w in tokens if w.isalpha() and w not in stopwords.words('spanish')]
-                wordcloud = WordCloud(width=400, height=300).generate(' '.join(filtered))
+            # Análisis básico sin carga pesada
+            st.subheader("Resultados")
+            
+            # Wordcloud simplificado
+            text = ' '.join(df.iloc[:, 0].astype(str))
+            tokens = [word.lower() for word in word_tokenize(text) 
+                     if word.isalpha() and word not in stopwords.words('spanish')]
+            
+            if tokens:
                 plt.figure(figsize=(10, 5))
+                wordcloud = WordCloud(width=800, height=400).generate(' '.join(tokens))
                 plt.imshow(wordcloud)
                 plt.axis('off')
-                st.pyplot(plt, clear_figure=True)
+                st.pyplot(plt)
+                plt.close()  # Liberar memoria
+                
+                # Análisis de sentimiento muestra
+                sample = df.iloc[0, 0][:200]  # Solo primera opinión
+                sentiment, score = simple_sentiment_analysis(sample)
+                st.metric("Sentimiento muestra", f"{sentiment} ({score:.0%})")
             
-            with col2:
-                sample_text = df.iloc[0, 0][:200]  # Solo analizar muestra
-                result = analyzer(sample_text)[0]
-                st.metric("Sentimiento de muestra", 
-                         f"{result['label']} ({result['score']:.0%})")
+            gc.collect()  # Forzar liberación de memoria
+            
+        except Exception as e:
+            st.error(f"Error procesando archivo: {str(e)}")
 
 if __name__ == "__main__":
     main()
