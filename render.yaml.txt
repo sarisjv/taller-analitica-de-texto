@@ -1,16 +1,19 @@
 services:
   - type: web
-    name: analisis-opiniones
-    runtime: python
+    name: analisis-sentimientos
+    env: python
+    plan: free
+    region: ohio  # Más estable que oregon
     buildCommand: |
       pip install -r requirements.txt
-      python -m nltk.downloader punkt stopwords -d /opt/render/.cache/nltk_data
-    startCommand: streamlit run app.py --server.port=$PORT --server.address=0.0.0.0
+      python -m nltk.downloader punkt stopwords -d ./nltk_data
+    startCommand: streamlit run app.py --server.port=$PORT --server.address=0.0.0.0 --server.enableCORS=false --server.enableXsrfProtection=false
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.9.16
-      - key: NLTK_DATA
-        value: /opt/render/.cache/nltk_data
-      - key: TRANSFORMERS_OFFLINE
+      - key: PYTHONUNBUFFERED
         value: 1
-    plan: free
+      - key: NLTK_DATA
+        value: ./nltk_data
+      - key: TRANSFORMERS_OFFLINE
+        value: 0
+    healthCheckPath: /healthz
+    autoDeploy: true
